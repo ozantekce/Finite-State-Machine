@@ -2,5 +2,5 @@
  My Finite State Machine Template For Unity
  
  It's a finite state machine template for Unity, I tried to create a simple structure as much as possible,
- I hope it will be useful for you.
- I will add some examples and documentation as soon as possible.
+  
+  [Example 1](https://github.com/ozantekce/Finite-State-Machine/tree/main/Assets/Example1)
