@@ -11,7 +11,7 @@ public abstract class State
     /// <summary>
     /// Here we set the state, actions and transitions should be specified here.
     /// </summary>
-    public abstract void Init();
+    public abstract void Init(FiniteStateMachine fsm);
 
     /// <summary>
     /// This method is called when entering a new state.
@@ -40,7 +40,7 @@ public abstract class State
 
         if (first)
         {
-            Init();
+            Init(fsm);
             first = false;
         }
 
