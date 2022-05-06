@@ -10,9 +10,12 @@ public abstract class FiniteStateMachine : MonoBehaviour
 
 
     // false : running | true : over
+    /// <summary>
+    /// keeps information of actions
+    /// </summary>
     private Dictionary<MyAction,bool> actionData = new Dictionary<MyAction, bool>();
 
-    public State CurrentState { get => currentState; set => currentState = value; }
+    public State CurrentState { get => currentState; }
     public float EnterTimeCurrentState { get => enterTimeCurrentState; }
     public Dictionary<MyAction, bool> ActionData { get => actionData; set => actionData = value; }
 
@@ -31,11 +34,12 @@ public abstract class FiniteStateMachine : MonoBehaviour
 
     public void ChangeCurrentState(State state)
     {
+        if(currentState != null)
+            CurrentState.Exit(this);
         
-        CurrentState.Exit(this);
-        CurrentState = state;
+        currentState = state;
         CurrentState.Enter(this);
-        // reset enter time to current state
+        // reset enter time of current state
         enterTimeCurrentState = Time.time;
 
 

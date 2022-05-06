@@ -165,7 +165,7 @@ public class MyAction
         yield return new WaitForSeconds(this.WaitAfter);
 
         actionData[this] = true;//over
-
+        Debug.Log("over");
     }
 
 

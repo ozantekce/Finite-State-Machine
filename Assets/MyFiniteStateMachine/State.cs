@@ -5,32 +5,91 @@ using UnityEngine;
 public abstract class State
 {
 
+    /// <summary>
+    /// Specifies run sequence of the Action
+    /// </summary>
+    public enum RunTimeOfAction
+    {
+        runOnEnter,runOnPreExecution,runOnExecution,runOnPostExecution,runOnExit
+    }
+    /// <summary>
+    /// SSpecifies run sequence of the Transition
+    /// </summary>
+    public enum RunTimeOfTransition
+    {
+        runOnPreExecution,runOnExecution,runOnPostExecution
+    }
+
+
     private List<MyAction> actions = new List<MyAction>();
     private List<Transition> transitions = new List<Transition>();
 
-    /// <summary>
-    /// It's a control value to initialize actions and transitions before first execute
-    /// </summary>
-    private bool first = true;
+    private List<MyAction> enterActions = new List<MyAction>();
+    private List<MyAction> exitActions = new List<MyAction>();
+
+    private List<MyAction>  preActions = new List<MyAction>();
+    private List<Transition> preTransitions = new List<Transition>();
+
+
+    private List<MyAction> postActions = new List<MyAction>();
+    private List<Transition> postTransitions = new List<Transition>();
+
 
     /// <summary>
-    /// Here we set the state, actions and transitions should be specified here.
-    /// </summary>
-    public abstract void Init(FiniteStateMachine fsm);
-
-    /// <summary>
-    /// This method is called when entering a new state.
+    /// This method is called when entering a new state and calls enterActions
     /// </summary>
     /// <param name="fsm"></param>
-    public abstract void Enter(FiniteStateMachine fsm);
-
-
-
-    protected virtual void PreExecute(FiniteStateMachine fsm)
+    public void Enter(FiniteStateMachine fsm)
     {
 
-    }
+        if (first)
+        {
+            Init();
+            first = false;
+        }
 
+        Enter_(fsm);
+
+        foreach (MyAction action in enterActions)
+        {
+            action.ExecuteAction(fsm);
+        }
+
+        
+
+
+    }
+    /// <summary>
+    /// This method called before Execute and calls preActions and preTransitions
+    /// </summary>
+    /// <param name="fsm"></param>
+    private void PreExecute(FiniteStateMachine fsm)
+    {
+
+        PreExecute_(fsm);
+
+        foreach (MyAction action in preActions)
+        {
+
+            action.ExecuteAction(fsm);
+
+        }
+
+        foreach (Transition transition in preTransitions)
+        {
+
+            if (transition.Decide(fsm))
+            {
+                //exit
+                return;
+            }
+
+        }
+
+        
+
+    }
+    
     /// <summary>
     /// This method first calls actions then calls transitions
     /// </summary>
@@ -38,15 +97,9 @@ public abstract class State
     public void Execute(FiniteStateMachine fsm)
     {
 
-        if (first)
-        {
-            Init(fsm);
-            first = false;
-        }
-
-
         PreExecute(fsm);
 
+        Execute_(fsm);
 
         foreach (MyAction action in actions)
         {
@@ -66,103 +119,191 @@ public abstract class State
 
         }
 
+        
 
         PostExecute(fsm);
 
     }
+    /// <summary>
+    /// This method called after Execute and calls postActions and postTransitions
+    /// </summary>
+    /// <param name="fsm"></param>
+    private void PostExecute(FiniteStateMachine fsm)
+    {
+
+        PostExecute_(fsm);
+
+        foreach (MyAction action in postActions)
+        {
+
+            action.ExecuteAction(fsm);
+
+        }
+
+        foreach (Transition transition in postTransitions)
+        {
+
+            if (transition.Decide(fsm))
+            {
+                //exit
+                return;
+            }
+
+        }
+
+        
+
+    }
+
+    /// <summary>
+    /// this method is called when exiting the current state and calls exitActions
+    /// </summary>
+    /// <param name="fsm"></param>
+    public void Exit(FiniteStateMachine fsm)
+    {
+
+        foreach (MyAction action in exitActions)
+        {
+            action.ExecuteAction(fsm);
+        }
+
+        Exit_(fsm);
+    }
 
 
-    protected virtual void PostExecute(FiniteStateMachine fsm)
+
+    /// <summary>
+    /// It's a control value to initialize actions and transitions before first execute ( I added this for singleton)
+    /// </summary>
+    private bool first = true;
+
+    /// <summary>
+    /// Here we set the state, actions and transitions should be specified here.
+    /// </summary>
+    public abstract void Init();
+
+
+    /// <summary>
+    /// Optional Enter this will called before Enter method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void Enter_(FiniteStateMachine fsm)
+    {
+
+    }
+    /// <summary>
+    /// Optional PreExecute this will called before PreExecute method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void PreExecute_(FiniteStateMachine fsm)
+    {
+
+    }
+    /// <summary>
+    /// Optional Execute this will called before Execute method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void Execute_(FiniteStateMachine fsm)
+    {
+
+
+    }
+
+    /// <summary>
+    /// Optional PostExecute this will called before PostExecute method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void PostExecute_(FiniteStateMachine fsm)
+    {
+
+    }
+
+    /// <summary>
+    /// Optional Exit this will called before Exit method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void Exit_(FiniteStateMachine fsm)
     {
 
     }
 
 
 
-    /// <summary>
-    /// this method is called when exiting the current state
-    /// </summary>
-    /// <param name="fsm"></param>
-    public abstract void Exit(FiniteStateMachine fsm);
-    
 
 
 
     /// <summary>
     /// Add an action
     /// </summary>
-    /// <param name="method"></param>
-    /// <returns></returns>
-    public MyAction AddAction(MyDelegates.Method method)
+    /// <param name="action"></param>
+    public void AddAction(MyAction action)
     {
-        MyAction temp = new MyAction(method);
-        actions.Add(temp);
-        return temp;
+        actions.Add(action);
+    }
+
+    /// <summary>
+    /// Add an action that is run on specific sequence
+    /// an action can run on entering, before executing, on executing , after executing and exiting.
+    /// </summary>
+    /// <param name="action"></param>
+    /// <param name="type"></param>
+    public void AddAction(MyAction action , RunTimeOfAction type)
+    {
+        if(type == RunTimeOfAction.runOnEnter)
+        {
+            enterActions.Add(action);
+        }
+        else if(type == RunTimeOfAction.runOnPreExecution)
+        {
+            preActions.Add(action);
+        }
+        else if (type == RunTimeOfAction.runOnExecution)
+        {
+            actions.Add(action);
+        }
+        else if (type == RunTimeOfAction.runOnPostExecution)
+        {
+            postActions.Add(action);
+        }
+        else if (type == RunTimeOfAction.runOnExit)
+        {
+            exitActions.Add(action);
+        }
 
     }
 
 
     /// <summary>
-    /// Add an action is timed
+    /// Add a transition
     /// </summary>
-    /// <param name="method"></param>
-    /// <param name="waitBefore"></param>
-    /// <param name="waitAfter"></param>
-    /// <returns></returns>
-    public MyAction AddAction(MyDelegates.Method method,float waitBefore,float waitAfter)
+    /// <param name="transition"></param>
+    public void AddTransition(Transition transition)
     {
-        MyAction temp = new MyAction(method, waitBefore, waitAfter);
-        actions.Add(temp);
-        return temp;
+        transitions.Add(transition);
     }
-
-
 
     /// <summary>
-    /// Add an action is conditional
+    /// Add a transition that is run on specific sequence
+    /// a transition can run on before executing,on executing and after executing.
     /// </summary>
-    /// <param name="method"></param>
-    /// <param name="condition"></param>
-    /// <returns></returns>
-    public MyAction AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition)
+    /// <param name="transition"></param>
+    /// <param name="type"></param>
+    public void AddTransition(Transition transition, RunTimeOfTransition type)
     {
-        MyAction temp = new MyAction(method, condition);
-        actions.Add(temp);
-        return temp;
-    }
-
-
-    /// <summary>
-    /// Add an action is conditional and timed
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="condition"></param>
-    /// <param name="waitBefore"></param>
-    /// <param name="waitAfter"></param>
-    /// <returns></returns>
-    public MyAction AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition, float waitBefore, float waitAfter)
-    {
-        MyAction temp = new MyAction(method,condition,waitBefore,waitAfter);
-        actions.Add(temp);
-        return temp;
+        if (type == RunTimeOfTransition.runOnPreExecution)
+        {
+            preTransitions.Add(transition);
+        }
+        else if (type == RunTimeOfTransition.runOnExecution)
+        {
+            transitions.Add(transition);
+        }
+        else if (type == RunTimeOfTransition.runOnPostExecution)
+        {
+            postTransitions.Add(transition);
+        }
 
     }
-
-
-    /// <summary>
-    /// Add an transition
-    /// </summary>
-    /// <param name="state"></param>
-    /// <param name="condition"></param>
-    /// <returns></returns>
-    public Transition AddTransition(State state,MyDelegates.ConditionMethod condition)
-    {
-        Transition temp = new Transition(state,condition);
-        transitions.Add(temp);
-        return temp;
-
-    }
-
 
 
 }
