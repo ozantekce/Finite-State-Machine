@@ -9,6 +9,11 @@ public abstract class State
     private List<Transition> transitions = new List<Transition>();
 
     /// <summary>
+    /// It's a control value to initialize actions and transitions before first execute
+    /// </summary>
+    private bool first = true;
+
+    /// <summary>
     /// Here we set the state, actions and transitions should be specified here.
     /// </summary>
     public abstract void Init(FiniteStateMachine fsm);
@@ -19,17 +24,12 @@ public abstract class State
     /// <param name="fsm"></param>
     public abstract void Enter(FiniteStateMachine fsm);
 
-    /// <summary>
-    /// this method is called when exiting the current state
-    /// </summary>
-    /// <param name="fsm"></param>
-    public abstract void Exit(FiniteStateMachine fsm);
 
 
-    /// <summary>
-    /// It's a control value to initialize actions and transitions before first execute
-    /// </summary>
-    private bool first = true;
+    protected virtual void PreExecute(FiniteStateMachine fsm)
+    {
+
+    }
 
     /// <summary>
     /// This method first calls actions then calls transitions
@@ -45,6 +45,8 @@ public abstract class State
         }
 
 
+        PreExecute(fsm);
+
 
         foreach (MyAction action in actions)
         {
@@ -55,30 +57,50 @@ public abstract class State
 
         foreach (Transition transition in transitions)
         {
-            transition.Decide(fsm);
+
+            if (transition.Decide(fsm))
+            {
+                //exit
+                return;
+            }
+
         }
 
+
+        PostExecute(fsm);
+
     }
+
+
+    protected virtual void PostExecute(FiniteStateMachine fsm)
+    {
+
+    }
+
 
 
     /// <summary>
-    /// Add an Action
+    /// this method is called when exiting the current state
     /// </summary>
-    /// <param name="myAction"></param>
-    public void AddAction(MyAction myAction)
-    {
-        if(!actions.Contains(myAction))
-            actions.Add(myAction);
+    /// <param name="fsm"></param>
+    public abstract void Exit(FiniteStateMachine fsm);
+    
 
-    }
+
+
     /// <summary>
     /// Add an action
     /// </summary>
     /// <param name="method"></param>
-    public void AddAction(MyDelegates.Method method)
+    /// <returns></returns>
+    public MyAction AddAction(MyDelegates.Method method)
     {
-        actions.Add(new MyAction(method));
+        MyAction temp = new MyAction(method);
+        actions.Add(temp);
+        return temp;
+
     }
+
 
     /// <summary>
     /// Add an action is timed
@@ -86,20 +108,29 @@ public abstract class State
     /// <param name="method"></param>
     /// <param name="waitBefore"></param>
     /// <param name="waitAfter"></param>
-    public void AddAction(MyDelegates.Method method,float waitBefore,float waitAfter)
+    /// <returns></returns>
+    public MyAction AddAction(MyDelegates.Method method,float waitBefore,float waitAfter)
     {
-        actions.Add(new MyAction(method,waitBefore,waitAfter));
+        MyAction temp = new MyAction(method, waitBefore, waitAfter);
+        actions.Add(temp);
+        return temp;
     }
+
+
 
     /// <summary>
     /// Add an action is conditional
     /// </summary>
     /// <param name="method"></param>
     /// <param name="condition"></param>
-    public void AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition)
+    /// <returns></returns>
+    public MyAction AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition)
     {
-        actions.Add(new MyAction(method, condition));
+        MyAction temp = new MyAction(method, condition);
+        actions.Add(temp);
+        return temp;
     }
+
 
     /// <summary>
     /// Add an action is conditional and timed
@@ -108,9 +139,13 @@ public abstract class State
     /// <param name="condition"></param>
     /// <param name="waitBefore"></param>
     /// <param name="waitAfter"></param>
-    public void AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition, float waitBefore, float waitAfter)
+    /// <returns></returns>
+    public MyAction AddAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition, float waitBefore, float waitAfter)
     {
-        actions.Add(new MyAction(method, condition,waitBefore,waitAfter));
+        MyAction temp = new MyAction(method,condition,waitBefore,waitAfter);
+        actions.Add(temp);
+        return temp;
+
     }
 
 
@@ -119,10 +154,15 @@ public abstract class State
     /// </summary>
     /// <param name="state"></param>
     /// <param name="condition"></param>
-    public void AddTransition(State state,MyDelegates.ConditionMethod condition)
+    /// <returns></returns>
+    public Transition AddTransition(State state,MyDelegates.ConditionMethod condition)
     {
-        transitions.Add(new Transition(state,condition));
+        Transition temp = new Transition(state,condition);
+        transitions.Add(temp);
+        return temp;
+
     }
+
 
 
 }

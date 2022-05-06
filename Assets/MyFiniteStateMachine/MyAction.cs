@@ -77,21 +77,104 @@ public class MyAction
 
     public void ExecuteAction(FiniteStateMachine fsm)
     {
-        fsm.ExecuteAction(this);
+
+        Dictionary<MyAction, bool> actionData = fsm.ActionData;
+        MyAction action = this;
+
+        if (action.Timed == MyAction.TIMED.Yes)
+        {
+
+            if (!actionData.ContainsKey(action))
+            {
+                actionData.Add(action, true);
+            }
+
+            if (actionData[action] == true)
+            {
+
+                if (action.Conditional == MyAction.CONDITIONAL.Yes)
+                {
+                    if (action.Condition(fsm))
+                    {
+                        fsm.StartCoroutine(TimedAction(fsm));
+                    }
+                }
+                else
+                {
+                    fsm.StartCoroutine(TimedAction(fsm));
+                }
+
+
+            }
+
+        }
+        else
+        {
+            if (action.Conditional == MyAction.CONDITIONAL.Yes)
+            {
+                if (action.Condition(fsm))
+                {
+                    action.Method(fsm);
+                }
+            }
+            else
+            {
+                action.Method(fsm);
+            }
+
+
+        }
+
     }
 
 
+
+    /// <summary>
+    /// returns true if the action is over
+    /// </summary>
+    /// <param name="fsm"></param>
+    /// <returns></returns>
     public bool ActionOver(FiniteStateMachine fsm)
     {
-        return fsm.ActionOver(this);
+        Dictionary<MyAction, bool> actionData = fsm.ActionData;
+        if (actionData.ContainsKey(this))
+        {
+            return actionData[this];
+        }
+        else
+        {
+            return false;
+        }
+
     }
 
 
-    public TIMED Timed { get => timed; set => timed = value; }
+
+    private IEnumerator TimedAction(FiniteStateMachine fsm)
+    {
+        //Debug.Log("hi");
+        Dictionary<MyAction, bool> actionData = fsm.ActionData;
+        actionData[this] = false;//running
+
+        yield return new WaitForSeconds(this.WaitBefore);
+
+
+        this.Method(fsm);
+
+
+        yield return new WaitForSeconds(this.WaitAfter);
+
+        actionData[this] = true;//over
+
+    }
+
+
+
+    public TIMED Timed { get => timed; }
     public MyDelegates.Method Method { get => method; set => method = value; }
     public float WaitBefore { get => waitBefore; set => waitBefore = value; }
     public float WaitAfter { get => waitAfter; set => waitAfter = value; }
-    public CONDITIONAL Conditional { get => conditional; set => conditional = value; }
+    public CONDITIONAL Conditional { get => conditional; }
     public MyDelegates.ConditionMethod Condition { get => condition; set => condition = value; }
 
     public enum TIMED
@@ -103,6 +186,7 @@ public class MyAction
     {
         No,Yes
     }
+
 
 
 }
