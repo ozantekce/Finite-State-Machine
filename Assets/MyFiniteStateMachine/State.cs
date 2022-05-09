@@ -5,6 +5,18 @@ using UnityEngine;
 public abstract class State
 {
 
+    //
+    private static List<State> ALL_STATES 
+        = new List<State>();
+
+
+    public State()
+    {
+
+        ALL_STATES.Add(this);
+
+    }
+
     /// <summary>
     /// Specifies run sequence of the Action
     /// </summary>
@@ -48,7 +60,7 @@ public abstract class State
             first = false;
         }
 
-        Enter_(fsm);
+        EnterOptional(fsm);
 
         foreach (MyAction action in enterActions)
         {
@@ -66,7 +78,7 @@ public abstract class State
     private void PreExecute(FiniteStateMachine fsm)
     {
 
-        PreExecute_(fsm);
+        PreExecuteOptional(fsm);
 
         foreach (MyAction action in preActions)
         {
@@ -99,7 +111,10 @@ public abstract class State
 
         PreExecute(fsm);
 
-        Execute_(fsm);
+        ExecuteOptional(fsm);
+
+        
+        // add blocking until all states execute preExecute
 
         foreach (MyAction action in actions)
         {
@@ -119,7 +134,7 @@ public abstract class State
 
         }
 
-        
+        // add blocking until all states execute 
 
         PostExecute(fsm);
 
@@ -131,7 +146,7 @@ public abstract class State
     private void PostExecute(FiniteStateMachine fsm)
     {
 
-        PostExecute_(fsm);
+        PostExecuteOptional(fsm);
 
         foreach (MyAction action in postActions)
         {
@@ -167,7 +182,7 @@ public abstract class State
             action.ExecuteAction(fsm);
         }
 
-        Exit_(fsm);
+        ExitOptional(fsm);
     }
 
 
@@ -187,7 +202,7 @@ public abstract class State
     /// Optional Enter this will called before Enter method
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void Enter_(FiniteStateMachine fsm)
+    protected virtual void EnterOptional(FiniteStateMachine fsm)
     {
 
     }
@@ -195,7 +210,7 @@ public abstract class State
     /// Optional PreExecute this will called before PreExecute method
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void PreExecute_(FiniteStateMachine fsm)
+    protected virtual void PreExecuteOptional(FiniteStateMachine fsm)
     {
 
     }
@@ -203,7 +218,7 @@ public abstract class State
     /// Optional Execute this will called before Execute method
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void Execute_(FiniteStateMachine fsm)
+    protected virtual void ExecuteOptional(FiniteStateMachine fsm)
     {
 
 
@@ -213,7 +228,7 @@ public abstract class State
     /// Optional PostExecute this will called before PostExecute method
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void PostExecute_(FiniteStateMachine fsm)
+    protected virtual void PostExecuteOptional(FiniteStateMachine fsm)
     {
 
     }
@@ -222,7 +237,7 @@ public abstract class State
     /// Optional Exit this will called before Exit method
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void Exit_(FiniteStateMachine fsm)
+    protected virtual void ExitOptional(FiniteStateMachine fsm)
     {
 
     }
