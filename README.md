@@ -6,7 +6,7 @@
  It's a finite state machine template for Unity, I tried to create a simple structure as much as possible,
   
   [Example 1](https://github.com/ozantekce/Finite-State-Machine/tree/main/Assets/Example1)
-  
+  [Example 2](https://github.com/ozantekce/Finite-State-Machine/tree/main/Assets/Example2)
   
   ![State](State.png)
   ![Action](Action.png)
