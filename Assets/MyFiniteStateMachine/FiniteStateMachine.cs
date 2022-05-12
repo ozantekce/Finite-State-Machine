@@ -23,7 +23,7 @@ public abstract class FiniteStateMachine : MonoBehaviour
 
 
 
-    private void FixedUpdate()
+    public void FixedUpdate()
     {
         if (CurrentState != null)
         {
