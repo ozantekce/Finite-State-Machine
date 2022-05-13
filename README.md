@@ -1,4 +1,4 @@
-# Finite_State-Machine
+# Finite_State_Machine
  My Finite State Machine Template For Unity
  
 After using the Finite State Machine for a long time, I decided to develop a Finite State Machine myself. I tried to develop a structure that would be a solution to the problems I actively encountered, and unlike the other structures I used, I set up a simpler and more useful structure by using Delegates. I have added some examples, you can review these examples.<br />
