@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ExplorerFSM : FiniteStateMachine
+public class ExplorerFSM : MonoStateMachine
 {
 
     [SerializeField]
@@ -46,7 +46,7 @@ public class ExplorerFSM : FiniteStateMachine
             Debug.Log("OVER");
 
         }
-        ),State.RunTimeOfAction.runOnEnter);
+        ),Runtime.Enter);
 
 
         ChangeCurrentState(moveForwardState);
@@ -55,7 +55,7 @@ public class ExplorerFSM : FiniteStateMachine
 
 
 
-    private bool NoObstacle(FiniteStateMachine fsm)
+    private bool NoObstacle(IStateMachine fsm)
     {
 
         RaycastHit hit;
@@ -73,7 +73,7 @@ public class ExplorerFSM : FiniteStateMachine
 
     }
 
-    private bool Obstacle(FiniteStateMachine fsm)
+    private bool Obstacle(IStateMachine fsm)
     {
 
         return !NoObstacle(fsm);
@@ -82,7 +82,7 @@ public class ExplorerFSM : FiniteStateMachine
 
 
 
-    private bool ReachedTheRightBorder(FiniteStateMachine fsm)
+    private bool ReachedTheRightBorder(IStateMachine fsm)
     {
 
 
@@ -102,7 +102,7 @@ public class ExplorerFSM : FiniteStateMachine
 
     }
 
-    private bool ReachedTheLeftBorder(FiniteStateMachine fsm)
+    private bool ReachedTheLeftBorder(IStateMachine fsm)
     {
 
         RaycastHit hit;
@@ -121,21 +121,19 @@ public class ExplorerFSM : FiniteStateMachine
 
     }
 
-    private void MoveForward(FiniteStateMachine fsm)
+    private void MoveForward(IStateMachine fsm)
     {
-
         transform.Translate(Vector3.forward*speed);
-
     }
 
 
-    private void MoveLeft(FiniteStateMachine fsm)
+    private void MoveLeft(IStateMachine fsm)
     {
         transform.Translate(Vector3.left * speed);
 
     }
 
-    private void MoveRight(FiniteStateMachine fsm)
+    private void MoveRight(IStateMachine fsm)
     {
         transform.Translate(Vector3.right * speed);
 

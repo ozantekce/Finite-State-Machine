@@ -1,196 +1,20 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 public abstract class State
 {
 
-    //
-    private static List<State> ALL_STATES 
-        = new List<State>();
+    private bool _firstTime = true;
+
+    public Action OnEnter { get; set; }
+    public Action OnUpdate { get; set; }
+    public Action OnFixedUpdate { get; set; }
+    public Action OnExit { get; set; }
+
+    public Dictionary<Runtime, List<MyAction>> RuntimeToActionsDic { get; private set; } = new Dictionary<Runtime, List<MyAction>>();
+    public Dictionary<Runtime, List<Transition>> RuntimeToTransitionDic { get; private set; } = new Dictionary<Runtime, List<Transition>>();
 
 
-    public State()
-    {
-
-        ALL_STATES.Add(this);
-
-    }
-
-    /// <summary>
-    /// Specifies run sequence of the Action
-    /// </summary>
-    public enum RunTimeOfAction
-    {
-        runOnEnter,runOnPreExecution,runOnExecution,runOnPostExecution,runOnExit
-    }
-    /// <summary>
-    /// SSpecifies run sequence of the Transition
-    /// </summary>
-    public enum RunTimeOfTransition
-    {
-        runOnPreExecution,runOnExecution,runOnPostExecution
-    }
-
-
-    private List<MyAction> actions = new List<MyAction>();
-    private List<Transition> transitions = new List<Transition>();
-
-    private List<MyAction> enterActions = new List<MyAction>();
-    private List<MyAction> exitActions = new List<MyAction>();
-
-    private List<MyAction>  preActions = new List<MyAction>();
-    private List<Transition> preTransitions = new List<Transition>();
-
-
-    private List<MyAction> postActions = new List<MyAction>();
-    private List<Transition> postTransitions = new List<Transition>();
-
-
-    /// <summary>
-    /// This method is called when entering a new state and calls enterActions
-    /// </summary>
-    /// <param name="fsm"></param>
-    public void Enter(FiniteStateMachine fsm)
-    {
-
-        if (first)
-        {
-            Init();
-            first = false;
-        }
-
-        EnterOptional(fsm);
-
-        foreach (MyAction action in enterActions)
-        {
-            action.ExecuteAction(fsm);
-        }
-
-        
-
-
-    }
-    /// <summary>
-    /// This method called before Execute and calls preActions and preTransitions
-    /// </summary>
-    /// <param name="fsm"></param>
-    private void PreExecute(FiniteStateMachine fsm)
-    {
-
-        PreExecuteOptional(fsm);
-
-        foreach (MyAction action in preActions)
-        {
-
-            action.ExecuteAction(fsm);
-
-        }
-
-        foreach (Transition transition in preTransitions)
-        {
-
-            if (transition.Decide(fsm))
-            {
-                //exit
-                return;
-            }
-
-        }
-
-        
-
-    }
-    
-    /// <summary>
-    /// This method first calls actions then calls transitions
-    /// </summary>
-    /// <param name="fsm"></param>
-    public void Execute(FiniteStateMachine fsm)
-    {
-
-        PreExecute(fsm);
-
-        ExecuteOptional(fsm);
-
-        
-        // add blocking until all states execute preExecute
-
-        foreach (MyAction action in actions)
-        {
-
-            action.ExecuteAction(fsm);
-
-        }
-
-        foreach (Transition transition in transitions)
-        {
-
-            if (transition.Decide(fsm))
-            {
-                //exit
-                return;
-            }
-
-        }
-
-        // add blocking until all states execute 
-
-        PostExecute(fsm);
-
-    }
-    /// <summary>
-    /// This method called after Execute and calls postActions and postTransitions
-    /// </summary>
-    /// <param name="fsm"></param>
-    private void PostExecute(FiniteStateMachine fsm)
-    {
-
-        PostExecuteOptional(fsm);
-
-        foreach (MyAction action in postActions)
-        {
-
-            action.ExecuteAction(fsm);
-
-        }
-
-        foreach (Transition transition in postTransitions)
-        {
-
-            if (transition.Decide(fsm))
-            {
-                //exit
-                return;
-            }
-
-        }
-
-        
-
-    }
-
-    /// <summary>
-    /// this method is called when exiting the current state and calls exitActions
-    /// </summary>
-    /// <param name="fsm"></param>
-    public void Exit(FiniteStateMachine fsm)
-    {
-
-        foreach (MyAction action in exitActions)
-        {
-            action.ExecuteAction(fsm);
-        }
-
-        ExitOptional(fsm);
-    }
-
-
-
-    /// <summary>
-    /// It's a control value to initialize actions and transitions before first execute ( I added this for singleton)
-    /// </summary>
-    private bool first = true;
 
     /// <summary>
     /// Here we set the state, actions and transitions should be specified here.
@@ -199,103 +23,112 @@ public abstract class State
 
 
     /// <summary>
-    /// Optional Enter this will called before Enter method
+    /// This method is called when entering a new state and calls enterActions
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void EnterOptional(FiniteStateMachine fsm)
+    public void Enter(IStateMachine fsm)
     {
+        if (_firstTime)
+        {
+            Init();
+            _firstTime = false;
+        }
 
+        EnterOptional(fsm);
+        List<MyAction> actions = RuntimeToActions(Runtime.Enter);
+        foreach (MyAction action in actions)
+        {
+            action.ExecuteAction(fsm);
+        }
+        OnEnter?.Invoke();
     }
+
+    
     /// <summary>
-    /// Optional PreExecute this will called before PreExecute method
+    /// This method first calls actions then calls transitions
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void PreExecuteOptional(FiniteStateMachine fsm)
+    public void Update(IStateMachine fsm)
     {
 
+        UpdateOptional(fsm);
+        List<MyAction> actions = RuntimeToActions(Runtime.Update);
+        foreach (MyAction action in actions)
+        {
+            action.ExecuteAction(fsm);
+        }
+
+        List<Transition> transitions = RuntimeToTransitions(Runtime.Update);
+        foreach (Transition transition in transitions)
+        {
+            if (transition.Decide(fsm))
+            {
+                return;
+            }
+        }
+
+        OnUpdate?.Invoke();
     }
+
     /// <summary>
-    /// Optional Execute this will called before Execute method
+    /// This method first calls actions then calls transitions
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void ExecuteOptional(FiniteStateMachine fsm)
+    public void FixedUpdate(IStateMachine fsm)
     {
 
+        FixedUpdateOptional(fsm);
+        List<MyAction> actions = RuntimeToActions(Runtime.FixedUpdate);
+        foreach (MyAction action in actions)
+        {
+            action.ExecuteAction(fsm);
+        }
 
+        List<Transition> transitions = RuntimeToTransitions(Runtime.FixedUpdate);
+        foreach (Transition transition in transitions)
+        {
+            if (transition.Decide(fsm))
+            {
+                return;
+            }
+        }
+
+        OnFixedUpdate?.Invoke();
     }
 
+
+
     /// <summary>
-    /// Optional PostExecute this will called before PostExecute method
+    /// this method is called when exiting the current state and calls exitActions
     /// </summary>
     /// <param name="fsm"></param>
-    protected virtual void PostExecuteOptional(FiniteStateMachine fsm)
+    public void Exit(IStateMachine fsm)
     {
-
-    }
-
-    /// <summary>
-    /// Optional Exit this will called before Exit method
-    /// </summary>
-    /// <param name="fsm"></param>
-    protected virtual void ExitOptional(FiniteStateMachine fsm)
-    {
-
+        ExitOptional(fsm);
+        List<MyAction> actions = RuntimeToActions(Runtime.Exit);
+        foreach (MyAction action in actions)
+        {
+            action.ExecuteAction(fsm);
+        }
+        OnExit?.Invoke();
     }
 
 
-
-
-
-
-    /// <summary>
-    /// Add an action
-    /// </summary>
-    /// <param name="action"></param>
-    public void AddAction(MyAction action)
-    {
-        actions.Add(action);
-    }
 
     /// <summary>
     /// Add an action that is run on specific sequence
-    /// an action can run on entering, before executing, on executing , after executing and exiting.
+    /// an action can run on enter, on update, on fixedUpdate and on exit.
     /// </summary>
     /// <param name="action"></param>
-    /// <param name="type"></param>
-    public void AddAction(MyAction action , RunTimeOfAction type)
+    /// <param name="runtime"></param>
+    public void AddAction(MyAction action, Runtime runtime = Runtime.Update)
     {
-        if(type == RunTimeOfAction.runOnEnter)
-        {
-            enterActions.Add(action);
-        }
-        else if(type == RunTimeOfAction.runOnPreExecution)
-        {
-            preActions.Add(action);
-        }
-        else if (type == RunTimeOfAction.runOnExecution)
-        {
-            actions.Add(action);
-        }
-        else if (type == RunTimeOfAction.runOnPostExecution)
-        {
-            postActions.Add(action);
-        }
-        else if (type == RunTimeOfAction.runOnExit)
-        {
-            exitActions.Add(action);
-        }
-
+        List<MyAction> actions = RuntimeToActionsDic.GetValueOrDefault(runtime, new List<MyAction>());
+        actions.Add(action);
+        actions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        RuntimeToActionsDic[runtime] = actions;
     }
 
-
-    /// <summary>
-    /// Add a transition
-    /// </summary>
-    /// <param name="transition"></param>
-    public void AddTransition(Transition transition)
-    {
-        transitions.Add(transition);
-    }
 
     /// <summary>
     /// Add a transition that is run on specific sequence
@@ -303,22 +136,81 @@ public abstract class State
     /// </summary>
     /// <param name="transition"></param>
     /// <param name="type"></param>
-    public void AddTransition(Transition transition, RunTimeOfTransition type)
+    public void AddTransition(Transition transition, Runtime runtime = Runtime.Update)
     {
-        if (type == RunTimeOfTransition.runOnPreExecution)
+        List<Transition> transitions = RuntimeToTransitionDic.GetValueOrDefault(runtime, new List<Transition>());
+        transitions.Add(transition);
+        RuntimeToTransitionDic[runtime] = transitions;
+    }
+
+
+    public List<MyAction> RuntimeToActions(Runtime runtime)
+    {
+        if (!RuntimeToActionsDic.ContainsKey(runtime))
         {
-            preTransitions.Add(transition);
+            RuntimeToActionsDic[runtime] = new List<MyAction>();
         }
-        else if (type == RunTimeOfTransition.runOnExecution)
+        return RuntimeToActionsDic[runtime];
+    }
+
+    public List<Transition> RuntimeToTransitions(Runtime runtime)
+    {
+        if (!RuntimeToTransitionDic.ContainsKey(runtime))
         {
-            transitions.Add(transition);
+            RuntimeToTransitionDic[runtime] = new List<Transition>();
         }
-        else if (type == RunTimeOfTransition.runOnPostExecution)
-        {
-            postTransitions.Add(transition);
-        }
+        return RuntimeToTransitionDic[runtime];
+    }
+
+
+    #region Virtual Methods
+
+    /// <summary>
+    /// Optional Enter this will called before Enter method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void EnterOptional(IStateMachine fsm)
+    {
+
+    }
+
+    /// <summary>
+    /// Optional Update this will called before Update method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void UpdateOptional(IStateMachine fsm)
+    {
+
 
     }
 
 
+    /// <summary>
+    /// Optional FixedUpdate this will called before FixedUpdate method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void FixedUpdateOptional(IStateMachine fsm)
+    {
+
+
+    }
+
+    /// <summary>
+    /// Optional Exit this will called before Exit method
+    /// </summary>
+    /// <param name="fsm"></param>
+    protected virtual void ExitOptional(IStateMachine fsm)
+    {
+
+    }
+
+
+    #endregion
+
+
+
+}
+public enum Runtime
+{
+    Enter, Update, FixedUpdate, Exit
 }

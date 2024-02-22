@@ -6,13 +6,6 @@ public class ConcreteState : State
 {
     public override void Init()
     {
-        
-
     }
-
-
-
-
-
 
 }

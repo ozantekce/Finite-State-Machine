@@ -14,13 +14,13 @@ public class EnemyChaseState : State
 
 
 
-    protected override void EnterOptional(FiniteStateMachine fsm)
+    protected override void EnterOptional(IStateMachine fsm)
     {
         Debug.Log("Enter : Enemy Chase State");
 
     }
 
-    protected override void ExitOptional(FiniteStateMachine fsm)
+    protected override void ExitOptional(IStateMachine fsm)
     {
         Debug.Log("Exit : Enemy Chase State");
 

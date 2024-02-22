@@ -1,192 +1,88 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class MyAction
 {
-
-    private MyDelegates.Method method;
-    private MyDelegates.ConditionMethod condition;
-    private float waitBefore;
-    private float waitAfter;
-    private TIMED timed;
-    private CONDITIONAL conditional;
-
-    /// <summary>
-    /// Create an action
-    /// </summary>
-    /// <param name="method"></param>
-    public MyAction(MyDelegates.Method method)
+    private static CoroutineRunner coroutineRunner;
+    private static CoroutineRunner CoroutineRunner
     {
-        this.method = method;
-        timed = TIMED.No;
-        conditional = CONDITIONAL.No;
-    }
-
-    /// <summary>
-    /// Create an action is timed
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="waitBefore"></param>
-    /// <param name="waitAfter"></param>
-    public MyAction(MyDelegates.Method method,float waitBefore,float waitAfter)
-    {
-
-        this.method=method;
-        this.waitBefore = waitBefore;
-        this.waitAfter = waitAfter;
-        timed = TIMED.Yes;
-        conditional = CONDITIONAL.No;
-    }
-
-
-    /// <summary>
-    /// Create an action is conditional
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="condition"></param>
-    public MyAction(MyDelegates.Method method,MyDelegates.ConditionMethod condition)
-    {
-        this.method = method;
-        this.condition = condition;
-        timed = TIMED.No;
-        conditional = CONDITIONAL.Yes;
-    }
-
-    /// <summary>
-    /// Create an action is conditional and timed
-    /// </summary>
-    /// <param name="method"></param>
-    /// <param name="condition"></param>
-    /// <param name="waitBefore"></param>
-    /// <param name="waitAfter"></param>
-    public MyAction(MyDelegates.Method method, MyDelegates.ConditionMethod condition, float waitBefore, float waitAfter)
-    {
-        this.method = method;
-        this.condition = condition;
-        this.waitBefore = waitBefore;
-        this.waitAfter=waitAfter;
-        timed = TIMED.Yes;
-        conditional = CONDITIONAL.Yes;
-
-    }
-
-
-
-
-    public void ExecuteAction(FiniteStateMachine fsm)
-    {
-
-        Dictionary<MyAction, bool> actionData = fsm.ActionData;
-        MyAction action = this;
-
-        if (action.Timed == MyAction.TIMED.Yes)
+        get
         {
-
-            if (!actionData.ContainsKey(action))
+            if (coroutineRunner == null)
             {
-                actionData.Add(action, true);
+                GameObject dummy = new GameObject("CoroutineRunner");
+                coroutineRunner = dummy.AddComponent<CoroutineRunner>();
             }
-
-            if (actionData[action] == true)
-            {
-
-                if (action.Conditional == MyAction.CONDITIONAL.Yes)
-                {
-                    if (action.Condition(fsm))
-                    {
-                        fsm.StartCoroutine(TimedAction(fsm));
-                    }
-                }
-                else
-                {
-                    fsm.StartCoroutine(TimedAction(fsm));
-                }
-
-
-            }
-
+            return coroutineRunner;
         }
+    }
+
+    public Action<IStateMachine> Action { get; private set; }
+    public Func<IStateMachine, bool> Condition { get; private set; }
+    public float WaitBefore { get; private set; } = -1f;
+    public float WaitAfter { get; private set; } = -1f;
+
+    public float Priority { get; private set; } = 1f;
+
+    public MyAction(Action<IStateMachine> action, float waitBefore = -1f, float waitAfter = -1f, float priority = 1f, Func<IStateMachine, bool> condition = null)
+    {
+        Action = action;
+        WaitBefore = waitBefore;
+        WaitAfter = waitAfter;
+        Priority = priority;
+        Condition = condition;
+    }
+
+    public void ExecuteAction(IStateMachine fsm)
+    {
+        if (!IsActionExecutable(fsm)) return;
+
+        if (IsTimedAction())
+            CoroutineRunner.StartCoroutine(TimedAction(fsm));
         else
-        {
-            if (action.Conditional == MyAction.CONDITIONAL.Yes)
-            {
-                if (action.Condition(fsm))
-                {
-                    action.Method(fsm);
-                }
-            }
-            else
-            {
-                action.Method(fsm);
-            }
-
-
-        }
-
+            Action.Invoke(fsm);
     }
 
-
-
-    /// <summary>
-    /// returns true if the action is over
-    /// </summary>
-    /// <param name="fsm"></param>
-    /// <returns></returns>
-    public bool ActionOver(FiniteStateMachine fsm)
+    public bool IsActionOver(IStateMachine fsm)
     {
-        Dictionary<MyAction, bool> actionData = fsm.ActionData;
-        if (actionData.ContainsKey(this))
-        {
-            return actionData[this];
-        }
-        else
-        {
-            return false;
-        }
-
+        return fsm.ActionStatuses.TryGetValue(this, out ActionStatus status) && status != ActionStatus.Running;
     }
 
-
-
-    private IEnumerator TimedAction(FiniteStateMachine fsm)
+    private bool IsActionExecutable(IStateMachine fsm)
     {
-        //Debug.Log("hi");
-        Dictionary<MyAction, bool> actionData = fsm.ActionData;
-        actionData[this] = false;//running
-
-        yield return new WaitForSeconds(this.WaitBefore);
-
-
-        this.Method(fsm);
-
-
-        yield return new WaitForSeconds(this.WaitAfter);
-
-        actionData[this] = true;//over
-        Debug.Log("over");
+        InitActionStatus(fsm, ActionStatus.None);
+        if (fsm.ActionStatuses[this] == ActionStatus.Running) return false;
+        if (Condition != null && !Condition.Invoke(fsm)) return false;
+        return true;
     }
 
-
-
-    public TIMED Timed { get => timed; }
-    public MyDelegates.Method Method { get => method; set => method = value; }
-    public float WaitBefore { get => waitBefore; set => waitBefore = value; }
-    public float WaitAfter { get => waitAfter; set => waitAfter = value; }
-    public CONDITIONAL Conditional { get => conditional; }
-    public MyDelegates.ConditionMethod Condition { get => condition; set => condition = value; }
-
-    public enum TIMED
+    private bool IsTimedAction()
     {
-        No,Yes
+        return WaitBefore > 0f || WaitAfter > 0f;
     }
 
-    public enum CONDITIONAL
+    private void InitActionStatus(IStateMachine fsm, ActionStatus defaultStatus)
     {
-        No,Yes
+        if (!fsm.ActionStatuses.ContainsKey(this))
+            fsm.ActionStatuses[this] = defaultStatus;
     }
 
-
-
+    private IEnumerator TimedAction(IStateMachine fsm)
+    {
+        fsm.ActionStatuses[this] = ActionStatus.Running;
+        if (WaitBefore > 0f) yield return new WaitForSeconds(WaitBefore);
+        Action?.Invoke(fsm);
+        if (WaitAfter > 0f) yield return new WaitForSeconds(WaitAfter);
+        fsm.ActionStatuses[this] = ActionStatus.Over;
+    }
 }
+
+public enum ActionStatus
+{
+    None,
+    Running,
+    Over,
+}
+
+public class CoroutineRunner : MonoBehaviour { }

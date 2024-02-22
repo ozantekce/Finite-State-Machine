@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyFSM : FiniteStateMachine
+public class EnemyFSM : MonoStateMachine
 {
 
     [SerializeField]
@@ -26,7 +26,7 @@ public class EnemyFSM : FiniteStateMachine
         chase = new EnemyChaseState();
         ChangeCurrentState(idle);
 
-        idle.AddTransition(new Transition(chase,PlayerClose));
+        idle.AddTransition(new Transition(chase, PlayerClose));
 
 
         chase.AddTransition(new Transition(idle, PlayerNotClose));
@@ -37,34 +37,34 @@ public class EnemyFSM : FiniteStateMachine
         
         chase.AddAction(new MyAction((fsm) => {
             Debug.Log("hi player");
-        }),State.RunTimeOfAction.runOnEnter);
+        }),Runtime.Enter);
 
 
 
 
     }
-    public static bool PlayerClose(FiniteStateMachine fsm)
+    public bool PlayerClose(IStateMachine fsm)
     {
-
-        EnemyFSM enemyFSM = fsm.GetComponent<EnemyFSM>();
+        MonoStateMachine monoStateMachine = fsm as MonoStateMachine;
+        EnemyFSM enemyFSM = monoStateMachine.GetComponent<EnemyFSM>();
         float distance = Vector3.Distance(enemyFSM.transform.position, enemyFSM.Player.transform.position);
         return distance < 10f;
 
     }
 
-    public static bool PlayerNotClose(FiniteStateMachine fsm)
+    public static bool PlayerNotClose(IStateMachine fsm)
     {
-
-        EnemyFSM enemyFSM = fsm.GetComponent<EnemyFSM>();
+        MonoStateMachine monoStateMachine = fsm as MonoStateMachine;
+        EnemyFSM enemyFSM = monoStateMachine.GetComponent<EnemyFSM>();
         float distance = Vector3.Distance(enemyFSM.transform.position, enemyFSM.Player.transform.position);
         return !(distance < 10f);
 
     }
 
-    public static void ChasePlayer(FiniteStateMachine fsm)
+    public static void ChasePlayer(IStateMachine fsm)
     {
-
-        EnemyFSM enemyFSM = fsm.GetComponent<EnemyFSM>();
+        MonoStateMachine monoStateMachine = fsm as MonoStateMachine;
+        EnemyFSM enemyFSM = monoStateMachine.GetComponent<EnemyFSM>();
         Vector3 target = enemyFSM.Player.transform.position;
         Vector3 directionVector = (target - enemyFSM.transform.position).normalized;
         enemyFSM.GetComponent<Rigidbody>().velocity = directionVector * enemyFSM.Speed;

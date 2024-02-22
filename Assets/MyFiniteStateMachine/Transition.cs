@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,18 +9,18 @@ using UnityEngine;
 public class Transition
 {
 
-    private State state;
-    private MyDelegates.ConditionMethod condition;
+    private State State { get; set; }
+    private Func<IStateMachine, bool> Condition { get; set; }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="state"></param>
     /// <param name="condition"></param>
-    public Transition(State state,MyDelegates.ConditionMethod condition)
+    public Transition(State state, Func<IStateMachine, bool> condition)
     {
-        this.state = state;
-        this.condition = condition;
+        State = state;
+        Condition = condition;
     }
 
     /// <summary>
@@ -27,12 +28,12 @@ public class Transition
     /// </summary>
     /// <param name="fsm"></param>
     /// <returns></returns>
-    public bool Decide(FiniteStateMachine fsm)
+    public bool Decide(IStateMachine fsm)
     {
 
-        if (condition(fsm))
+        if (Condition(fsm))
         {
-            fsm.ChangeCurrentState(state);
+            fsm.ChangeCurrentState(State);
             return true;
         }
         return false;

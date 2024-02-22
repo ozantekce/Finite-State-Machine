@@ -11,12 +11,12 @@ public class EnemyIdleState : State
     }
 
 
-    protected override void EnterOptional(FiniteStateMachine fsm)
+    protected override void EnterOptional(IStateMachine fsm)
     {
         Debug.Log("Enter : Enemy Idle State");
     }
 
-    protected override void ExitOptional(FiniteStateMachine fsm)
+    protected override void ExitOptional(IStateMachine fsm)
     {
         Debug.Log("Exit : Enemy Idle State");
     }
