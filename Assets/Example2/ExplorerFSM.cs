@@ -21,26 +21,26 @@ public class ExplorerFSM : MonoStateMachine
         moveLeftState = new ConcreteState();
         idleState = new ConcreteState();
 
-        moveForwardState.AddAction(new MyAction(MoveForward));
+        moveForwardState.AddAction(new Operation(MoveForward));
         moveForwardState.AddTransition(new Transition(moveRightState, Obstacle));
 
 
 
-        moveRightState.AddAction(new MyAction(MoveRight));
+        moveRightState.AddAction(new Operation(MoveRight));
         moveRightState.AddTransition(new Transition(moveForwardState, NoObstacle));
         moveRightState.AddTransition(new Transition(moveLeftState, ReachedTheRightBorder));
 
 
 
         
-        moveLeftState.AddAction(new MyAction(MoveLeft));
+        moveLeftState.AddAction(new Operation(MoveLeft));
         moveLeftState.AddTransition(new Transition(moveForwardState, NoObstacle));
         moveLeftState.AddTransition(new Transition(idleState, ReachedTheLeftBorder));
 
         
 
         
-        idleState.AddAction(new MyAction((fsm) =>
+        idleState.AddAction(new Operation((fsm) =>
         {
 
             Debug.Log("OVER");

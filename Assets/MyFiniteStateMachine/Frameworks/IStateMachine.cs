@@ -5,7 +5,7 @@ public interface IStateMachine
 
     public State CurrentState { get; }
 
-    public Dictionary<MyAction, ActionStatus> ActionStatuses { get; }
+    public Dictionary<Operation, ActionStatus> ActionStatuses { get; }
 
     public float EnterTimeCurrentState { get; }
 

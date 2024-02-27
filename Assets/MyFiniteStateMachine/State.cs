@@ -11,9 +11,10 @@ public abstract class State
     public Action OnFixedUpdate { get; set; }
     public Action OnExit { get; set; }
 
-    public Dictionary<Runtime, List<MyAction>> RuntimeToActionsDic { get; private set; } = new Dictionary<Runtime, List<MyAction>>();
+    public Dictionary<Runtime, List<Operation>> RuntimeToActionsDic { get; private set; } = new Dictionary<Runtime, List<Operation>>();
     public Dictionary<Runtime, List<Transition>> RuntimeToTransitionDic { get; private set; } = new Dictionary<Runtime, List<Transition>>();
 
+    private Dictionary<Runtime, List<PriorityWrapper>> RunTimeToPriorityWrapper { get; set; } = new Dictionary<Runtime, List<PriorityWrapper>>();
 
 
     /// <summary>
@@ -35,10 +36,24 @@ public abstract class State
         }
 
         EnterOptional(fsm);
-        List<MyAction> actions = RuntimeToActions(Runtime.Enter);
-        foreach (MyAction action in actions)
+        List<PriorityWrapper> wrappers = RunTimeToPriorityWrapper.GetValueOrDefault(Runtime.Enter, null);
+        if (wrappers != null)
         {
-            action.ExecuteAction(fsm);
+
+            foreach (var wrapper in wrappers)
+            {
+                if (wrapper.Operation != null)
+                {
+                    wrapper.Operation.ExecuteAction(fsm);
+                }
+                else if (wrapper.Transition != null)
+                {
+                    if (wrapper.Transition.Decide(fsm))
+                    {
+                        return;
+                    }
+                }
+            }
         }
         OnEnter?.Invoke();
     }
@@ -52,18 +67,25 @@ public abstract class State
     {
 
         UpdateOptional(fsm);
-        List<MyAction> actions = RuntimeToActions(Runtime.Update);
-        foreach (MyAction action in actions)
-        {
-            action.ExecuteAction(fsm);
-        }
 
-        List<Transition> transitions = RuntimeToTransitions(Runtime.Update);
-        foreach (Transition transition in transitions)
+
+        List<PriorityWrapper> wrappers = RunTimeToPriorityWrapper.GetValueOrDefault(Runtime.Update, null);
+        if(wrappers != null)
         {
-            if (transition.Decide(fsm))
+
+            foreach (var wrapper in wrappers)
             {
-                return;
+                if(wrapper.Operation != null)
+                {
+                    wrapper.Operation.ExecuteAction(fsm);
+                }
+                else if(wrapper.Transition != null)
+                {
+                    if (wrapper.Transition.Decide(fsm))
+                    {
+                        return;
+                    }
+                }
             }
         }
 
@@ -78,18 +100,23 @@ public abstract class State
     {
 
         FixedUpdateOptional(fsm);
-        List<MyAction> actions = RuntimeToActions(Runtime.FixedUpdate);
-        foreach (MyAction action in actions)
+        List<PriorityWrapper> wrappers = RunTimeToPriorityWrapper.GetValueOrDefault(Runtime.FixedUpdate, null);
+        if (wrappers != null)
         {
-            action.ExecuteAction(fsm);
-        }
 
-        List<Transition> transitions = RuntimeToTransitions(Runtime.FixedUpdate);
-        foreach (Transition transition in transitions)
-        {
-            if (transition.Decide(fsm))
+            foreach (var wrapper in wrappers)
             {
-                return;
+                if (wrapper.Operation != null)
+                {
+                    wrapper.Operation.ExecuteAction(fsm);
+                }
+                else if (wrapper.Transition != null)
+                {
+                    if (wrapper.Transition.Decide(fsm))
+                    {
+                        return;
+                    }
+                }
             }
         }
 
@@ -105,10 +132,24 @@ public abstract class State
     public void Exit(IStateMachine fsm)
     {
         ExitOptional(fsm);
-        List<MyAction> actions = RuntimeToActions(Runtime.Exit);
-        foreach (MyAction action in actions)
+        List<PriorityWrapper> wrappers = RunTimeToPriorityWrapper.GetValueOrDefault(Runtime.Exit, null);
+        if (wrappers != null)
         {
-            action.ExecuteAction(fsm);
+
+            foreach (var wrapper in wrappers)
+            {
+                if (wrapper.Operation != null)
+                {
+                    wrapper.Operation.ExecuteAction(fsm);
+                }
+                else if (wrapper.Transition != null)
+                {
+                    if (wrapper.Transition.Decide(fsm))
+                    {
+                        return;
+                    }
+                }
+            }
         }
         OnExit?.Invoke();
     }
@@ -121,12 +162,17 @@ public abstract class State
     /// </summary>
     /// <param name="action"></param>
     /// <param name="runtime"></param>
-    public void AddAction(MyAction action, Runtime runtime = Runtime.Update)
+    public void AddAction(Operation action, Runtime runtime = Runtime.Update, float priority = 1f)
     {
-        List<MyAction> actions = RuntimeToActionsDic.GetValueOrDefault(runtime, new List<MyAction>());
+        List<Operation> actions = RuntimeToActionsDic.GetValueOrDefault(runtime, new List<Operation>());
         actions.Add(action);
-        actions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
         RuntimeToActionsDic[runtime] = actions;
+
+        List<PriorityWrapper> priorityWrappers = RunTimeToPriorityWrapper.GetValueOrDefault(runtime, new List<PriorityWrapper>());
+        priorityWrappers.Add(new PriorityWrapper(action, priority));
+        priorityWrappers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        RunTimeToPriorityWrapper[runtime] = priorityWrappers;
+
     }
 
 
@@ -136,19 +182,24 @@ public abstract class State
     /// </summary>
     /// <param name="transition"></param>
     /// <param name="type"></param>
-    public void AddTransition(Transition transition, Runtime runtime = Runtime.Update)
+    public void AddTransition(Transition transition, Runtime runtime = Runtime.Update, float priority = 1f)
     {
         List<Transition> transitions = RuntimeToTransitionDic.GetValueOrDefault(runtime, new List<Transition>());
         transitions.Add(transition);
         RuntimeToTransitionDic[runtime] = transitions;
+
+        List<PriorityWrapper> priorityWrappers = RunTimeToPriorityWrapper.GetValueOrDefault(runtime, new List<PriorityWrapper>());
+        priorityWrappers.Add(new PriorityWrapper(transition, priority));
+        priorityWrappers.Sort((a, b) => b.Priority.CompareTo(a.Priority));
+        RunTimeToPriorityWrapper[runtime] = priorityWrappers;
     }
 
 
-    public List<MyAction> RuntimeToActions(Runtime runtime)
+    public List<Operation> RuntimeToActions(Runtime runtime)
     {
         if (!RuntimeToActionsDic.ContainsKey(runtime))
         {
-            RuntimeToActionsDic[runtime] = new List<MyAction>();
+            RuntimeToActionsDic[runtime] = new List<Operation>();
         }
         return RuntimeToActionsDic[runtime];
     }
@@ -207,6 +258,28 @@ public abstract class State
 
     #endregion
 
+
+
+    private class PriorityWrapper
+    {
+
+        public float Priority { get; private set; } = 1f;
+        public Operation Operation { get; private set; }
+        public Transition Transition { get; private set; }
+
+        public PriorityWrapper(Operation operation, float priority = 1f)
+        {
+            Operation = operation;
+            Priority = priority;
+        }
+
+        public PriorityWrapper(Transition transition, float priority = 1f)
+        {
+            Transition = transition;
+            Priority = priority;
+        }
+
+    }
 
 
 }

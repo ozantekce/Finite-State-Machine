@@ -33,9 +33,9 @@ public class EnemyFSM : MonoStateMachine
 
 
 
-        chase.AddAction(new MyAction(ChasePlayer));
+        chase.AddAction(new Operation(ChasePlayer));
         
-        chase.AddAction(new MyAction((fsm) => {
+        chase.AddAction(new Operation((fsm) => {
             Debug.Log("hi player");
         }),Runtime.Enter);
 

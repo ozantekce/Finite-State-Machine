@@ -2,19 +2,19 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class MyAction
+public class Operation
 {
-    private static CoroutineRunner coroutineRunner;
+    private static CoroutineRunner s_CoroutineRunner;
     private static CoroutineRunner CoroutineRunner
     {
         get
         {
-            if (coroutineRunner == null)
+            if (s_CoroutineRunner == null)
             {
                 GameObject dummy = new GameObject("CoroutineRunner");
-                coroutineRunner = dummy.AddComponent<CoroutineRunner>();
+                s_CoroutineRunner = dummy.AddComponent<CoroutineRunner>();
             }
-            return coroutineRunner;
+            return s_CoroutineRunner;
         }
     }
 
@@ -23,14 +23,12 @@ public class MyAction
     public float WaitBefore { get; private set; } = -1f;
     public float WaitAfter { get; private set; } = -1f;
 
-    public float Priority { get; private set; } = 1f;
 
-    public MyAction(Action<IStateMachine> action, float waitBefore = -1f, float waitAfter = -1f, float priority = 1f, Func<IStateMachine, bool> condition = null)
+    public Operation(Action<IStateMachine> action, float waitBefore = -1f, float waitAfter = -1f, Func<IStateMachine, bool> condition = null)
     {
         Action = action;
         WaitBefore = waitBefore;
         WaitAfter = waitAfter;
-        Priority = priority;
         Condition = condition;
     }
 

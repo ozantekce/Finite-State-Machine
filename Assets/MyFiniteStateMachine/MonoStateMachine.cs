@@ -6,7 +6,7 @@ public abstract class MonoStateMachine : MonoBehaviour, IStateMachine
 
     public State CurrentState { get; private set; }
     public float EnterTimeCurrentState { get; private set; }
-    public Dictionary<MyAction, ActionStatus> ActionStatuses { get; set; } = new Dictionary<MyAction, ActionStatus>();
+    public Dictionary<Operation, ActionStatus> ActionStatuses { get; set; } = new Dictionary<Operation, ActionStatus>();
 
 
     public void Update()

@@ -12,6 +12,8 @@ public class Transition
     private State State { get; set; }
     private Func<IStateMachine, bool> Condition { get; set; }
 
+
+
     /// <summary>
     /// 
     /// </summary>
