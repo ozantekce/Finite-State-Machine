@@ -37,9 +37,26 @@ public class ExplorerFSM : MonoStateMachine
         moveLeftState.AddTransition(new Transition(moveForwardState, NoObstacle));
         moveLeftState.AddTransition(new Transition(idleState, ReachedTheLeftBorder));
 
-        
 
-        
+        idleState.AddAction(new Operation((fsm) =>
+        {
+
+            Debug.Log("A");
+
+        }
+        ), Runtime.Enter, -1f);
+
+
+        idleState.AddAction(new Operation((fsm) =>
+        {
+
+            Debug.Log("B");
+
+        }
+        ), Runtime.Enter, -2f);
+
+
+
         idleState.AddAction(new Operation((fsm) =>
         {
 
